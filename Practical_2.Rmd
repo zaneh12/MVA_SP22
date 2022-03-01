@@ -1,0 +1,267 @@
+---
+title: "MVA_P2"
+author: "Zane Hassoun"
+date: "2/16/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+states = data(state)
+states = state.x77
+dta = read.csv("C:/Users/zaneh/Downloads/voice.csv")
+idk = read.csv("C:/Users/zaneh/Downloads/voice.csv")
+library(tidyverse)
+library(ggcorrplot)
+library(pander)
+library(factoextra)
+```
+
+#### View the Socioeconomic Datset
+
+Use visualisation methods of your choice to investigate correlations between variables in the state.x77 data set (e.g., a correlogram or scatterplot matrix). Do you think that PCA will be helpful here?
+
+***Yes there are many highly correlated variables***
+
+```{r}
+cor_dta = cor(states)
+ggcorrplot(cor_dta) + labs(title = "Correlogram of States Data Variables")
+corrplot::corrplot(cor_dta)
+```
+
+#### 3.1 PCA By Hand
+
+2\. Choose whether or not to scale the data variables. Either way, they need to be centred, and this can also be done with the scale function (using center = TRUE).
+
+3.  Get the empirical covariance matrix of the data variables and, using the function eigen, compute its eigenvalues and eigenvectors. What do they represent in PCA?
+
+a\) The Eigenvectors give us the Principal Component Axes
+
+b\) The eigevalues are our % of variation explained by each new vector
+
+4.  Compute scores, i.e., coordinates of the data points in the basis defined by the principal component axes. Plot the first two principal components as a scatterplot.
+
+5.  Compute and plot the proportion of variance explained by each principal component. How many principal components would you need to keep to explain at least 90% of the variability in the data?
+
+We need 4 principal Components
+
+```{r}
+#Step 1 Scale and Center the Variables
+X = scale(states,
+          center = TRUE,
+          scale = TRUE)
+
+
+#Evaluate the Covariance Matrix
+
+sigma = cov(X)
+eigenpairs = eigen(sigma)
+
+#Compute the Scores ie the new points with our correct number of rows and columns 
+
+Z = as.data.frame(as.matrix(X)%*%eigenpairs$vectors)
+head(Z)
+
+ggplot(data = Z) + 
+  geom_point(aes(x = V1, 
+                 y = V2),
+             color = 'red') +
+  geom_vline(xintercept = 0, linetype = 2)+
+  geom_hline(yintercept = 0, linetype = 2)+
+  labs(title = "First Two Principal Components Plotted",
+       x = "PC1",
+       y = "PC2")
+
+#Proportion of Variance Explained 
+
+vars_exp = round(eigenpairs$values/sum(eigenpairs$values),2)
+cs = round(cumsum(eigenpairs$values)/sum(eigenpairs$values),2)
+prop_exp = data.frame("PC" = c(1:8),
+                      "Raw" = vars_exp,
+                      "Cumulative" = cs )
+pander(prop_exp)
+
+ggplot(data = prop_exp) + 
+  geom_point(aes(x = PC,
+                 y = Raw),
+             size = 4)+
+  geom_smooth(aes(x = PC, 
+                  y = Raw),
+              se = F,
+              colour = "Red",
+              size = 2)+
+  labs(title = "Scree Plot",
+       x = "Principal Component Index",
+       y = "Proportion of Variance Explained")+
+  theme(plot.title = element_text(hjust = 0.5))
+
+ggplot(data = prop_exp) + 
+  geom_point(aes(x = PC,
+                 y = Cumulative),
+             size = 4)+
+  geom_smooth(aes(x = PC, 
+                  y = Cumulative),
+              se = F,
+              colour = "blue",
+              size = 2)+
+  geom_hline(yintercept = 0.9, linetype = 2, size = 2)+
+  labs(title = "Cumulative Scree Plot",
+       x = "Principal Component Index",
+       y = "Proportion of Variance Explained")+
+  theme(plot.title = element_text(hjust = 0.5))
+
+```
+
+#### 3.2 PCA using built ins
+
+Use the function prcomp to apply PCA to the data set. Inspect the object returned by the function; what are its elements? 7. Compare the rotation matrix returned by prcomp to the matrix of eigenvectors obtained by hand in the previous section. Would you expect these to be the same? Are they the same? Why do you think that is? 8. Create a biplot using the function biplot (or factoextra::fviz_pca_biplot). Can you think of a tentative interpretation for the two first principal components? You could also use the function factoextra::fviz_pca_var here. 1 9. If you had scaled the variables in question 2, then repeat the analysis on the non-scaled data (or vice-versa). What differences do you find in the biplot? What about the proportion of variance explained by each principal component?
+
+```{r}
+#Using a function
+
+built_pca = prcomp(X)
+names(built_pca)
+
+pander(eigenpairs$vectors)
+pander(built_pca$rotation)
+
+factoextra::fviz_pca_biplot(built_pca)
+factoextra::fviz_pca_var(built_pca)
+```
+
+#### PCA With Voice Frequency Set
+
+Prepare the voice data set from Kaggle for PCA (you will need to exclude the last variable, which is categorical). Inspect correlations between the continuous data variables. 11. Repeat questions 2-8 on this data set. Do you need to change anything in your code? 12. (optional) The last variable of the data set is sex (male/female), and this data set has been used to investigate the performance of different classification algorithms to distinguish male and female voices based on frequency. Use this categorical variable to colour data points in a biplot (or maybe even a 3d scatterplot of the first three principal components using plotly). Do you think that the first two or three principal components are sufficient to distinguish between male and female voices?
+
+```{r}
+dta = dta[,1:20]
+cor_dta = cor(dta)
+ggcorrplot(cor_dta) + labs(title = "Correlogram of Socioeconomic Variables")
+#Step 1 Scale and Center the Variables
+X = scale(dta,
+          center = TRUE,
+          scale = TRUE)
+
+
+#Evaluate the Covariance Matrix
+
+sigma = var(X)
+eigenpairs = eigen(sigma)
+
+#Compute the Scores ie the new points with our correct number of rows and columns 
+
+Z = as.data.frame(as.matrix(X)%*%eigenpairs$vectors)
+
+
+# ggplot(data = Z) + 
+#   geom_point(aes(y = V1, 
+#                  x = V2),
+#              color = 'red') + 
+#   labs(title = "First Two Principal Components Plotted",
+#        x = "PC1",
+#        y = "PC2")
+
+ggplot(data = Z) + 
+  geom_point(aes(x = V1, 
+                 y = V2),
+             color = 'red') +
+  geom_vline(xintercept = 0, linetype = 2)+
+  geom_hline(yintercept = 0, linetype = 2)+
+  labs(title = "First Two Principal Components Plotted",
+       x = "PC1",
+       y = "PC2")
+#Proportion of Variance Explained 
+
+vars_exp = round(eigenpairs$values/sum(eigenpairs$values),2)
+cs = round(cumsum(eigenpairs$values)/sum(eigenpairs$values),2)
+prop_exp = data.frame("PC" = c(1:20),
+                      "Raw" = vars_exp,
+                      "Cumulative" = cs )
+
+#Proportion of Variance Explained 
+
+
+ggplot(data = prop_exp) + 
+  geom_point(aes(x = PC,
+                 y = Raw),
+             size = 4)+
+  geom_smooth(aes(x = PC, 
+                  y = Raw),
+              se = F,
+              colour = "Red",
+              size = 2)+
+  labs(title = "Scree Plot",
+       x = "Principal Component Index",
+       y = "Proportion of Variance Explained")+
+  theme(plot.title = element_text(hjust = 0.5))
+
+ggplot(data = prop_exp) + 
+  geom_point(aes(x = PC,
+                 y = Cumulative),
+             size = 4)+
+  geom_smooth(aes(x = PC, 
+                  y = Cumulative),
+              se = F,
+              colour = "blue",
+              size = 2)+
+  geom_hline(yintercept = 0.9, linetype = 2, size = 2)+
+  labs(title = "Cumulative Scree Plot",
+       x = "Principal Component Index",
+       y = "Proportion of Variance Explained")+
+  theme(plot.title = element_text(hjust = 0.5))
+
+
+
+built_pca = prcomp(X)
+factoextra::fviz_pca_biplot(built_pca)
+factoextra::fviz_pca_biplot(built_pca,
+                            label = "var",
+                            repel = TRUE,
+                            col.ind = idk$label)
+
+
+
+
+
+```
+
+```{r}
+dta = dta[,1:20]
+cor_dta = cor(dta)
+ggcorrplot(cor_dta) + labs(title = "Correlogram of Socioeconomic Variables")
+#Step 1 Scale and Center the Variables
+X = scale(dta,
+          center = TRUE)
+
+
+#Evaluate the Covariance Matrix
+
+sigma = var(X)
+eigenpairs = eigen(sigma)
+
+#Compute the Scores ie the new points with our correct number of rows and columns 
+
+Z = as.data.frame(as.matrix(dta)%*%eigenpairs$vectors)
+
+
+ggplot(data = Z) + 
+  geom_point(aes(y = V1, 
+                 x = V2),
+             color = 'red') + 
+  labs(title = "First Two Principal Components Plotted",
+       x = "PC1",
+       y = "PC2")
+
+#Proportion of Variance Explained 
+
+vars_exp = round(eigenpairs$values/sum(eigenpairs$values),2)
+cs = round(cumsum(eigenpairs$values)/sum(eigenpairs$values),2)
+prop_exp = data.frame("PC" = c(1:20),
+                      "Raw" = vars_exp,
+                      "Cumulative" = cs )
+# pander(prop_exp)
+
+built_pca = prcomp(dta)
+factoextra::fviz_pca_biplot(built_pca)
+
+```

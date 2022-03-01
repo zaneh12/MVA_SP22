@@ -1,0 +1,127 @@
+---
+title: "MVA_Practical_1"
+author: "Zane Hassoun"
+date: "1/31/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# install.packages("symbols")
+# install.packages("aplpack")
+# install.packages("scatterplot3d")
+# install.packages("corrplot")
+#install.packages("GGally")
+library(GGally)
+library(symbols)
+library(aplpack)
+library(scatterplot3d)
+library(corrplot)
+library(tidyverse)
+library(ggthemes)
+library(ggcorrplot)
+
+```
+
+# Multivariate Analysis Practical 1
+#### Using the PanTHERIA dataset 
+
+#### Questions 1&2 Download file and format the values
+```{r}
+raw_data = read.csv("C:/Users/zaneh/Downloads/ECOL_90_184/PanTHERIA_1-0_WR05_Aug2008.txt", sep = "\t")
+rownames(raw_data) <- raw_data$MSW05_Binomial
+# Keep only relevant variables
+raw_data_vars <- raw_data[,c(7, 9, 16, 21, 22, 23)]
+# Give readable column names
+colnames(raw_data_vars) <- c("body_mass_g", "body_length_mm", "gestation_length_d",
+"litter_size", "litters_per_year", "longevity_m")
+# Find indices of rows that have missing values (equal to -999)
+which_na <- sapply(1:nrow(raw_data_vars), function(i) any(raw_data_vars[i,] == -999))
+# Remove those rows from data
+data <- raw_data_vars[!which_na,]
+
+head(data)
+```
+
+#### Q3 Create a scatterplot of body mass against body length. What is the relationship between the two variables?
+
+The relationship is increasing
+
+```{r}
+#ggplot(data[which(data$body_length_mm<5000),])
+
+ggplot(data) + 
+  geom_point(aes(x = log(body_mass_g), y = body_length_mm), colour = 'red') + 
+  labs(title = "Body Mass v Body Length", y = "Body Length", x = "Log(Body Mass)", subtitle = "Max Body Length 5,000") 
+
+```
+
+
+#### Q4 Create a 3d scatterplot of any three variables in the data set (e.g., body length, litter size, and longevity). For this, you can use the function scatterplot3d from the package of the same name. You can change the angle argument to visualise the points from different angles. What is the relationship between the three variables?
+```{r}
+scatterplot3d(x = data$litter_size,
+              xlab = "Litter Size",
+              z = log(data$body_length_mm),
+              zlab = "Log Body Length",
+              y = data$longevity_m, 
+              ylab = "Longevity",
+              angle = 45,
+              color = "blue",
+              main = "Litter v Body Length v Longevity")
+```
+
+#### Question 5 Create a scatterplot matrix of all variables, using the function pairs. Can you easily identify pairs of variables that are correlated? (Alternatively, if you are familiar with ggplot2, you can use the function ggpairs from the package GGally.)
+
+Correlated Variables: 
+1) Gestation Length & Longevity 
+2) Body Length & Longevity
+
+```{r}
+pairs(data)
+```
+
+
+#### Question 6 Compute Correlation Matrix and 7 Create a correlogram 
+
+```{r}
+print(cor(data))
+ggcorrplot(cor(data)) + labs(title = 'Correlation Plot') + theme(plot.title = element_text(hjust = 0.5))
+```
+
+#### Question 8  Create a smaller data frame that only includes the subset of rows you selected (e.g., data_subset <- data[1:20,]), and use that to try the following methods (which don’t work as well for data sets with many rows).
+#### Question 9 Create a parallel coordinates plot using the function parcoord from the package MASS. (Alternatively,
+#### Question 10 Create star glyphs using the function stars. You can use the option key.loc to specify the coordinates at which the key should be placed.
+#### Question 11. Create Chernoff faces using the function faces from the package aplpack.
+#### Question 12. Compare the three types of plots to answer some common questions in multivariate analyses: Are there outliers in the data? Can you identify groups of similar data units?
+
+Yes the chernov faces show $$x_{(2,5)}$$
+```{r}
+data_subset = data.frame(data[1:20,],species = rep(c("A", "B", "C","D"), 5))
+data_subset
+ggparcoord(data_subset,showPoints = TRUE, columns = 1:6, groupColumn = "species")+
+           labs(title = 'Parallel Coordinates Plot for Subsetted Data',
+                              y = "Coordinate Value", x = "Predictor") +  theme(legend.position="none") + theme(plot.title = element_text(hjust = 0.5))
+
+stars(data[1:20,])
+faces(data[1:20,])
+```
+
+
+#### Question 13 - 16 Distance Matricies 
+New Dataset with scaled function 
+D matrix using dist
+which are closes
+findings change using manhattan
+
+
+
+```{r}
+#Scaling the data
+scaled_data = scale(data[1:20,])
+
+#Computing the Distance Matrix
+
+dist(scaled_data)
+
+dist(scaled_data, method = "manhattan")
+```
